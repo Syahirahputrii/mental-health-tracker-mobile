@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mental_health_tracker/screens/moodentry_form.dart';
-
+import 'package:mental_health_tracker/screens/list_moodentry.dart'; // Import halaman MoodEntryPage
+import 'package:mental_health_tracker/screens/login.dart'; // Import halaman LoginPage untuk navigasi setelah logout
+import 'package:pbp_django_auth/pbp_django_auth.dart'; // Import CookieRequest untuk autentikasi
+import 'package:provider/provider.dart'; // Import Provider untuk context.watch
 
 class ItemHomepage {
   final String name;
@@ -16,11 +19,13 @@ class ItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>(); // Mengakses CookieRequest
+
     return Material(
       color: Theme.of(context).colorScheme.secondary,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: () {
+        onTap: () async {
           // Memunculkan SnackBar ketika diklik
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -34,6 +39,37 @@ class ItemCard extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (context) => MoodEntryFormPage()),
             );
+          } else if (item.name == "Lihat Mood") {
+            // Navigasi ke halaman MoodEntryPage (Lihat Mood)
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MoodEntryPage()),
+            );
+          } else if (item.name == "Logout") {
+            // Proses logout secara asinkron
+            final response = await request.logout(
+              "http://[APP_URL_KAMU]/auth/logout/"); // Ganti URL dengan URL logout Anda
+
+            String message = response["message"];
+            if (context.mounted) {
+              if (response['status']) {
+                String uname = response["username"];
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text("$message Sampai jumpa, $uname."),
+                ));
+                // Navigasi ke halaman Login setelah logout berhasil
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                  ),
+                );
+              }
+            }
           }
         },
         child: Container(
@@ -61,4 +97,3 @@ class ItemCard extends StatelessWidget {
     );
   }
 }
-
